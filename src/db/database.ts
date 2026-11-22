@@ -1,9 +1,9 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { VOCAB, VOCAB_VERSION } from '../data/vocab.generated';
+import { SENTENCES, VOCAB, VOCAB_VERSION } from '../data/vocab.generated';
 import { buildLessons, nextReview, type Grouping } from '../lib/lessons';
 
 export const DATABASE_NAME = 'jp.db';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const LESSON_SIZE = 10;
 
 export interface Word {
@@ -99,6 +99,26 @@ export async function migrate(db: SQLiteDatabase) {
       );
     `);
   }
+  if (current < 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sentences (
+        id       INTEGER PRIMARY KEY,
+        japanese TEXT NOT NULL,
+        kana     TEXT NOT NULL,
+        english  TEXT NOT NULL
+      );
+      -- Which vocab words appear in each sentence, and how they're written there.
+      CREATE TABLE IF NOT EXISTS sentence_words (
+        sentence_id INTEGER NOT NULL REFERENCES sentences(id) ON DELETE CASCADE,
+        word_id     INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        surface     TEXT NOT NULL,
+        PRIMARY KEY (sentence_id, word_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_sentence_words_word ON sentence_words(word_id);
+    `);
+    // Force a reseed so the new tables get filled on upgrade.
+    await db.runAsync("DELETE FROM settings WHERE key = 'vocab_version'");
+  }
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 
   const v = await getSetting(db, 'vocab_version');
@@ -127,6 +147,15 @@ async function seedVocab(db: SQLiteDatabase) {
       await stmt.finalizeAsync();
     }
     await txn.runAsync('DELETE FROM words WHERE id > ?', VOCAB.length);
+
+    await txn.execAsync('DELETE FROM sentence_words; DELETE FROM sentences;');
+    for (let i = 0; i < SENTENCES.length; i++) {
+      const [japanese, kana, english, targets] = SENTENCES[i];
+      await txn.runAsync('INSERT INTO sentences (id, japanese, kana, english) VALUES (?, ?, ?, ?)', i + 1, japanese, kana, english);
+      for (const [wordId, surface] of targets) {
+        await txn.runAsync('INSERT INTO sentence_words (sentence_id, word_id, surface) VALUES (?, ?, ?)', i + 1, wordId, surface);
+      }
+    }
 
     const words = await txn.getAllAsync<Word>('SELECT * FROM words');
     await txn.execAsync('DELETE FROM lesson_words; DELETE FROM lessons;');
@@ -271,4 +300,37 @@ export async function getStats(db: SQLiteDatabase) {
 
 export async function resetProgress(db: SQLiteDatabase) {
   await db.execAsync('DELETE FROM progress; DELETE FROM lesson_results;');
+}
+
+// ---------------------------------------------------------------- sentences
+
+export interface SentenceRow {
+  id: number;
+  japanese: string;
+  kana: string;
+  english: string;
+  word_id: number;
+  surface: string;
+}
+
+/**
+ * One row per (sentence, target word). With a lesson, only sentences that use that
+ * lesson's words; otherwise sentences that use words you've studied, falling back to all.
+ */
+export async function getSentenceRows(db: SQLiteDatabase, lessonId?: number) {
+  const base = `SELECT s.id, s.japanese, s.kana, s.english, sw.word_id, sw.surface
+                FROM sentences s JOIN sentence_words sw ON sw.sentence_id = s.id`;
+  if (lessonId) {
+    return db.getAllAsync<SentenceRow>(
+      `${base} WHERE sw.word_id IN (SELECT word_id FROM lesson_words WHERE lesson_id = ?)`, lessonId,
+    );
+  }
+  const seen = await db.getAllAsync<SentenceRow>(
+    `${base} WHERE sw.word_id IN (SELECT word_id FROM progress)`,
+  );
+  return seen.length ? seen : db.getAllAsync<SentenceRow>(base);
+}
+
+export async function getAllSentences(db: SQLiteDatabase) {
+  return db.getAllAsync<{ id: number; english: string }>('SELECT id, english FROM sentences');
 }

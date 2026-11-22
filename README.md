@@ -9,6 +9,7 @@ A pocket app for learning Japanese vocabulary and kanji. It's built with **Expo 
 - **Meaning quiz**: see the word, pick the English meaning.
 - **Reading quiz**: see the kanji, pick the right kana. The okurigana (the hiragana ending, e.g. 出来**る**, 食**べる**) is highlighted. The wrong answers end with the same kana, so you have to actually read the kanji. After you answer, it explains how the ending tells you the pronunciation and the word class.
 - **⚡ Speed reading**: a timed reading quiz. Choose 3, 5 or 8 seconds per word, then tap the reading before the bar runs out. Correct answers move on automatically, and a miss stops so you can look at it. At the end you see your average time, your fastest time, and a list of slow or missed words. Your best average is saved; a run only counts if you score 80% or more. Start it from any lesson, or from the Review tab to drill words you've already studied.
+- **文 Sentences**: 48 example sentences built from the vocab. There are two modes: **Whole sentence** (pick the English translation) and **Word in context** (one word is highlighted; pick what it means in that sentence). The timer can be off, 8, 12 or 20 seconds. Tap the sentence to see its kana reading. Misses show the translation and how the highlighted word appears in the sentence. Start it from a lesson (sentences that use that lesson's words) or from the Review tab.
 - **Writing practice**: draw the kanji on a writing pad from its meaning and reading. You can trace a faint guide, then check your drawing against the answer and mark yourself.
 - **Spaced repetition**: every answer updates a Leitner box. Words come back after 1, 2, 4, 8, 16 and 32 days in the **Review** tab.
 - **Word-of-the-day card**: shows the kanji, kana, romaji and meaning (e.g. 好き · すき · suki · to like). It's a preview of the home-screen widget (see roadmap).
@@ -43,6 +44,7 @@ To install that build you need an Apple Developer account. It's free for limited
 
 ```
 data/vocab.psv              word list (edit this) -> run `npm run vocab`
+data/sentences.psv          example sentences (edit this) -> run `npm run vocab`
 scripts/build-vocab.mjs     validates the list, writes src/data/vocab.generated.ts
 src/db/database.ts          SQLite schema, migrations, seeding and all queries
 src/lib/                    pure logic: romaji, okurigana, lesson building, SRS, quiz building
@@ -59,7 +61,8 @@ tests/                      unit tests for the pure logic (`npm test`)
 | `lessons` / `lesson_words` | generated lessons for both groupings and the words in each |
 | `lesson_results` | completion date and best score per lesson |
 | `progress` | spaced-repetition box, next due time, right/wrong counts per word |
-| `settings` | chosen grouping, vocab version |
+| `sentences` / `sentence_words` | example sentences and which vocab words appear in each (with the conjugated form) |
+| `settings` | chosen grouping, quiz settings, vocab version |
 
 When you change `data/vocab.psv` and run `npm run vocab`, the app spots the new version on its next launch. It updates the words and rebuilds the lessons, and **keeps your progress**.
 
@@ -73,6 +76,17 @@ kanji | kana | meaning | type | context
 ```
 
 Leave `kanji` empty for words normally written in kana. Line order = frequency rank. Then run `npm run vocab`.
+
+## Adding sentences
+
+Add a line to `data/sentences.psv`:
+
+```
+japanese | kana reading | english | word=surface, word=surface
+犬が好きです。| いぬがすきです。| I like dogs. | 犬=犬, 好き=好き
+```
+
+`word` is the word as written in `vocab.psv`. `surface` is how it appears in the sentence, e.g. `食べる=食べ` for 食べません. `npm run vocab` checks that every word exists and every surface form is in the sentence.
 
 ## Scripts
 
@@ -89,4 +103,4 @@ Leave `kanji` empty for words normally written in kana. Line order = frequency r
 - [ ] **Stroke order checking**: use KanjiVG (CC BY-SA) stroke data to grade stroke count, order and direction, and to animate the correct strokes.
 - [ ] **Home-screen widget**: a native iOS WidgetKit extension, written in Swift, that shows a word from the SQLite database. This needs a development build through EAS; it won't run in Expo Go.
 - [ ] Daily reminder notification.
-- [ ] Example sentences per word.
+- [ ] More example sentences (aim for 2–3 per word).

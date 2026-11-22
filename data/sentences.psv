@@ -1,0 +1,54 @@
+# Example sentences. One per line, pipe-separated:
+#   japanese | kana reading | english | targets
+# targets: comma-separated  word=surface  pairs.
+#   word    = the word's written form in vocab.psv (kanji, or kana if it has none)
+#   surface = how it appears in this sentence (e.g. a conjugated form), used for highlighting
+# After editing, run:  npm run vocab
+私は日本語を勉強します。|わたしはにほんごをべんきょうします。|I study Japanese.|私=私,日本語=日本語,勉強=勉強
+毎朝、お茶を飲みます。|まいあさ、おちゃをのみます。|I drink tea every morning.|お茶=お茶,飲む=飲み
+昨日、友達に会いました。|きのう、ともだちにあいました。|I met a friend yesterday.|昨日=昨日,友達=友達,会う=会い
+駅はどこですか。|えきはどこですか。|Where is the station?|駅=駅,どこ=どこ
+この店は安いです。|このみせはやすいです。|This shop is cheap.|店=店,安い=安い
+犬が好きです。|いぬがすきです。|I like dogs.|犬=犬,好き=好き
+明日は雨です。|あしたはあめです。|It will rain tomorrow.|明日=明日,雨=雨
+今日はとても暑いです。|きょうはとてもあついです。|It's very hot today.|今日=今日,とても=とても,暑い=暑い
+日本語が少し分かります。|にほんごがすこしわかります。|I understand a little Japanese.|少し=少し,分かる=分かり
+魚を食べません。|さかなをたべません。|I don't eat fish.|魚=魚,食べる=食べ
+家に帰ります。|いえにかえります。|I'm going home.|家=家,帰る=帰り
+電車で会社に行きます。|でんしゃでかいしゃにいきます。|I go to the office by train.|電車=電車,会社=会社,行く=行き
+先生の名前は何ですか。|せんせいのなまえはなんですか。|What is the teacher's name?|先生=先生,名前=名前
+週末、一緒に遊びましょう。|しゅうまつ、いっしょにあそびましょう。|Let's hang out together this weekend.|週末=週末,一緒に=一緒に,遊ぶ=遊び
+名前を書いてください。|なまえをかいてください。|Please write your name.|名前=名前,書く=書い
+少し待ってください。|すこしまってください。|Please wait a moment.|少し=少し,待つ=待っ
+昨日の夜、早く寝ました。|きのうのよる、はやくねました。|I went to bed early last night.|夜=夜,寝る=寝
+朝六時に起きます。|あさろくじにおきます。|I wake up at six in the morning.|朝=朝,起きる=起き
+彼女は先生です。|かのじょはせんせいです。|She is a teacher.|彼女=彼女,先生=先生
+彼は英語を話します。|かれはえいごをはなします。|He speaks English.|彼=彼,英語=英語,話す=話し
+子供と一緒に山に行きました。|こどもといっしょにやまにいきました。|I went to the mountains with my child.|子供=子供,山=山,行く=行き
+家族は元気です。|かぞくはげんきです。|My family is doing well.|家族=家族,元気=元気
+この花は綺麗ですね。|このはなはきれいですね。|This flower is pretty, isn't it?|花=花,綺麗=綺麗
+仕事は楽しいです。|しごとはたのしいです。|My job is fun.|仕事=仕事,楽しい=楽しい
+今、時間がありますか。|いま、じかんがありますか。|Do you have time now?|今=今,時間=時間,ある=あり
+猫が家にいます。|ねこがいえにいます。|There is a cat in the house.|猫=猫,家=家,いる=います
+お金がありません。|おかねがありません。|I don't have any money.|お金=お金,ある=あり
+水を買いました。|みずをかいました。|I bought water.|水=水,買う=買い
+この肉は美味しいです。|このにくはおいしいです。|This meat is delicious.|肉=肉,美味しい=美味しい
+天気がいいですね。|てんきがいいですね。|Nice weather, isn't it?|天気=天気,良い=いい
+寒いから、家で休みます。|さむいから、いえでやすみます。|It's cold, so I'll rest at home.|寒い=寒い,家=家,休む=休み
+日本語で話してください。|にほんごではなしてください。|Please speak in Japanese.|日本語=日本語,話す=話し
+彼の名前を忘れました。|かれのなまえをわすれました。|I forgot his name.|彼=彼,名前=名前,忘れる=忘れ
+新しい車を買いたいです。|あたらしいくるまをかいたいです。|I want to buy a new car.|新しい=新しい,車=車,買う=買い
+彼女は有名な人です。|かのじょはゆうめいなひとです。|She is a famous person.|彼女=彼女,有名=有名,人=人
+まだ分かりません。|まだわかりません。|I still don't understand.|まだ=まだ,分かる=分かり
+本当にありがとう。|ほんとうにありがとう。|Thank you so much.|本当に=本当に,ありがとう=ありがとう
+多分、明日来ます。|たぶん、あしたきます。|I'll probably come tomorrow.|多分=多分,明日=明日,来る=来
+晩ご飯を作りました。|ばんごはんをつくりました。|I made dinner.|ご飯=ご飯,作る=作り
+静かな川ですね。|しずかなかわですね。|It's a quiet river, isn't it?|静か=静か,川=川
+学校で日本語を教えています。|がっこうでにほんごをおしえています。|I teach Japanese at a school.|学校=学校,日本語=日本語,教える=教え
+寒い冬が嫌いです。|さむいふゆがきらいです。|I hate cold winters.|寒い=寒い,嫌い=嫌い
+空がとても綺麗です。|そらがとてもきれいです。|The sky is really beautiful.|空=空,とても=とても,綺麗=綺麗
+もう仕事を始めました。|もうしごとをはじめました。|I've already started work.|もう=もう,仕事=仕事,始める=始め
+この道を使ってください。|このみちをつかってください。|Please use this road.|道=道,使う=使っ
+東京に住んでいます。|とうきょうにすんでいます。|I live in Tokyo.|住む=住ん
+父は毎日働きます。|ちちはまいにちはたらきます。|My dad works every day.|毎日=毎日,働く=働き
+その話は全然知りませんでした。|そのはなしはぜんぜんしりませんでした。|I didn't know that story at all.|全然=全然,知る=知り

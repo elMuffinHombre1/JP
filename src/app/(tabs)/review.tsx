@@ -41,6 +41,13 @@ export default function Review() {
         </Text>
         <Button label="Start speed reading" onPress={() => router.push('/speed')} />
       </Card>
+      <Card style={{ gap: space(3) }}>
+        <Text style={styles.title}>文 Sentences</Text>
+        <Text style={styles.sub}>
+          Read sentences that use words you've studied. Choose the meaning of the whole sentence or of one word, timed or untimed.
+        </Text>
+        <Button label="Start sentences" onPress={() => router.push('/sentences')} />
+      </Card>
       {due.length ? (
         <Card>
           {due.map((w) => <WordRow key={w.id} word={w} />)}

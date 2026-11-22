@@ -48,6 +48,11 @@ export default function LessonScreen() {
           disabled={!hasKanji}
           onPress={() => router.push({ pathname: '/speed', params: { lessonId: id } })}
         />
+        <Button
+          label="文 Sentences (meaning in context)"
+          kind="secondary"
+          onPress={() => router.push({ pathname: '/sentences', params: { lessonId: id } })}
+        />
         {lesson?.best_score != null ? (
           <Text style={styles.sub}>Best score: {lesson.best_score}%{lesson.completed_at ? ' · completed ✅' : ''}</Text>
         ) : null}

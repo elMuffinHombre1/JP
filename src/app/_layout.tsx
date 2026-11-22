@@ -30,6 +30,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="lesson/[id]" options={{ title: 'Lesson' }} />
+          <Stack.Screen name="sentences" options={{ presentation: 'fullScreenModal', headerShown: false }} />
           <Stack.Screen name="speed" options={{ presentation: 'fullScreenModal', headerShown: false }} />
           <Stack.Screen name="quiz" options={{ title: 'Quiz', presentation: 'fullScreenModal', headerShown: false }} />
         </Stack>
