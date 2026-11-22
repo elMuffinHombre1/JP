@@ -51,3 +51,8 @@ test('personal best needs 80% accuracy and a faster average', () => {
   assert.equal(isBestRun(1500, 90, 1400), false);
   assert.equal(isBestRun(1300, 90, 1400), true);
 });
+
+test('writing needs at least one kanji to draw', () => {
+  assert.equal(canAsk({ id: 9, kanji: 'ヶ所', kana: 'かしょ', meaning: 'places', type: 'counter' }, 'writing'), true);
+  assert.equal(canAsk({ id: 9, kanji: 'ヶ', kana: 'か', meaning: 'x', type: 'counter' }, 'writing'), false);
+});

@@ -42,7 +42,8 @@ function pickDistractors(
 }
 
 /** Words that can be asked in a mode (reading and writing need a kanji form). */
-export const canAsk = (w: QWord, mode: QuizMode) => (mode === 'meaning' ? true : !!w.kanji);
+export const canAsk = (w: QWord, mode: QuizMode) =>
+  mode === 'meaning' ? true : mode === 'writing' ? /[\u4e00-\u9fff々]/.test(w.kanji) : !!w.kanji;
 
 export function buildQuestion(word: QWord, mode: QuizMode, pool: QWord[], rand: () => number = Math.random): Question {
   if (mode === 'writing') return { word, mode, options: [], answer: word.kanji };

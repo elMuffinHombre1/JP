@@ -10,10 +10,8 @@ import { shuffle } from '../lib/lessons';
 import { buildQuestion, canAsk, readingExplanation, type Question, type QuizMode } from '../lib/quiz';
 import { toRomaji } from '../lib/romaji';
 import { Button, Written } from '../ui/components';
-import { KanjiPad } from '../ui/KanjiPad';
+import { WritingQuestion } from '../ui/WritingQuestion';
 import { colors, radius, space } from '../ui/theme';
-
-type Point = { x: number; y: number };
 
 const TITLES: Record<QuizMode, string> = {
   meaning: 'What does it mean?',
@@ -25,15 +23,12 @@ export default function Quiz() {
   const params = useLocalSearchParams<{ mode: QuizMode; lessonId?: string; review?: string }>();
   const mode: QuizMode = params.mode ?? 'meaning';
   const db = useSQLiteContext();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [score, setScore] = useState(0);
-  const [strokes, setStrokes] = useState<Point[][]>([]);
-  const [revealed, setRevealed] = useState(false);
-  const [trace, setTrace] = useState(false);
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
@@ -65,8 +60,6 @@ export default function Quiz() {
     }
     setI(i + 1);
     setPicked(null);
-    setStrokes([]);
-    setRevealed(false);
   };
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -98,7 +91,8 @@ export default function Quiz() {
   if (!q) return null;
   const w = q.word;
   const answered = picked !== null;
-  const padSize = Math.min(width - space(8), 340);
+  // Big enough to write on, small enough that the buttons fit without scrolling.
+  const padSize = Math.min(width - space(8), 320, height * 0.4);
 
   return (
     <SafeAreaView style={styles.page}>
@@ -113,38 +107,8 @@ export default function Quiz() {
 
         {mode === 'writing' ? (
           <>
-            <View style={styles.prompt}>
-              <Text style={styles.promptMeaning}>{w.meaning}</Text>
-              <Text style={styles.sub}>{w.kana} · {toRomaji(w.kana)}</Text>
-            </View>
-            <View style={{ alignItems: 'center' }}>
-              <KanjiPad
-                size={padSize}
-                strokes={strokes}
-                onStrokesChange={setStrokes}
-                guide={revealed || trace ? w.kanji : undefined}
-                guideOpacity={revealed ? 0.35 : 0.15}
-              />
-            </View>
-            {revealed ? (
-              <>
-                <Text style={[styles.center, { fontSize: 44, color: colors.ink }]}>{w.kanji}</Text>
-                {answered ? (
-                  <Button label={i + 1 >= questions.length ? 'Finish' : 'Next'} onPress={next} />
-                ) : (
-                  <View style={styles.rowGap}>
-                    <Button label="Missed it" kind="secondary" style={{ flex: 1 }} onPress={() => answer(false, 'missed')} />
-                    <Button label="Got it" style={{ flex: 1 }} onPress={() => answer(true, 'ok')} />
-                  </View>
-                )}
-              </>
-            ) : (
-              <View style={styles.rowGap}>
-                <Button label="Clear" kind="secondary" style={{ flex: 1 }} onPress={() => setStrokes([])} />
-                <Button label={trace ? 'Hide guide' : 'Trace'} kind="secondary" style={{ flex: 1 }} onPress={() => setTrace(!trace)} />
-                <Button label="Check" style={{ flex: 1 }} onPress={() => setRevealed(true)} />
-              </View>
-            )}
+            <WritingQuestion key={w.id} word={w} padSize={padSize} onDone={(ok) => answer(ok, ok ? 'ok' : 'missed')} />
+            {answered ? <Button label={i + 1 >= questions.length ? 'Finish' : 'Next word'} onPress={next} /> : null}
           </>
         ) : (
           <>

@@ -78,6 +78,7 @@ export default function Today() {
       <Text style={styles.credit}>
         Words from JMdict by the Electronic Dictionary Research and Development Group (EDRDG), CC BY-SA 4.0.
         Word frequency from OpenSubtitles via Hermit Dave's FrequencyWords, CC BY-SA 4.0.
+        Stroke order from KanjiVG by Ulrich Apel and contributors, CC BY-SA 3.0.
       </Text>
     </ScrollView>
   );
