@@ -25,13 +25,30 @@ export const TYPE_LABELS: Record<string, string> = {
   'verb-irr': 'Verbs (irregular)',
   'adj-i': 'い-adjectives',
   'adj-na': 'な-adjectives',
+  'adj-pre': 'Pre-noun words (この, その…)',
   adverb: 'Adverbs',
   expression: 'Expressions',
   question: 'Question words',
+  particle: 'Particles',
+  conjunction: 'Conjunctions',
+  counter: 'Counters',
+  number: 'Numbers',
+};
+
+const CONTEXT_LABELS: Record<string, string> = {
+  general: 'Everyday words',
+  'daily-life': 'Daily life',
+  'work-school': 'Work & school',
+  'body-health': 'Body & health',
+  'sports-hobbies': 'Sports & hobbies',
+  'business-money': 'Money & business',
+  'science-tech': 'Science & tech',
+  describing: 'Describing things',
 };
 
 export function groupLabel(grouping: Grouping, value: string): string {
   if (grouping === 'type') return TYPE_LABELS[value] ?? value;
+  if (CONTEXT_LABELS[value]) return CONTEXT_LABELS[value];
   return value
     .split('-')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -50,8 +67,9 @@ export function buildLessons(words: LessonWord[], grouping: Grouping, size = 10)
     groups.get(key)!.push(w);
   }
 
-  // Interleave parts: part 1 of every group, then part 2 of every group, ...
-  const chunked = [...groups.entries()].map(([value, list]) => {
+  const rankOf = new Map(words.map((w) => [w.id, w.rank]));
+  const plans: (LessonPlan & { firstRank: number })[] = [];
+  for (const [value, list] of groups) {
     const parts: LessonWord[][] = [];
     for (let i = 0; i < list.length; i += size) parts.push(list.slice(i, i + size));
     // Fold a tiny last chunk into the previous lesson.
@@ -59,25 +77,22 @@ export function buildLessons(words: LessonWord[], grouping: Grouping, size = 10)
       const last = parts.pop()!;
       parts[parts.length - 1].push(...last);
     }
-    return { value, parts };
-  });
-
-  const plans: LessonPlan[] = [];
-  const maxParts = Math.max(0, ...chunked.map((c) => c.parts.length));
-  for (let p = 0; p < maxParts; p++) {
-    for (const { value, parts } of chunked) {
-      if (!parts[p]) continue;
-      const label = groupLabel(grouping, value);
+    const label = groupLabel(grouping, value);
+    parts.forEach((part, p) => {
       plans.push({
         grouping,
         groupValue: value,
         part: p + 1,
         title: parts.length > 1 ? `${label} ${p + 1}` : label,
-        wordIds: parts[p].map((w) => w.id),
+        wordIds: part.map((w) => w.id),
+        firstRank: rankOf.get(part[0].id) ?? 0,
       });
-    }
+    });
   }
-  return plans;
+  // Order lessons by their most common word, so you meet the most useful words first
+  // whichever group they're in. (Within a group, parts stay in order.)
+  plans.sort((a, b) => a.firstRank - b.firstRank);
+  return plans.map(({ firstRank: _, ...plan }) => plan);
 }
 
 /** Leitner boxes: days until the next review for each box. */

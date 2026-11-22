@@ -125,61 +125,70 @@ export async function migrate(db: SQLiteDatabase) {
   if (v !== VOCAB_VERSION) await seedVocab(db);
 }
 
-/** Upsert the bundled word list, then rebuild lessons. Learning progress is kept. */
+type Row = (string | number)[];
+
+/**
+ * Insert many rows with a few big statements instead of one call per row: 10,000 words
+ * plus their lessons would otherwise take a long time on a phone.
+ */
+async function insertMany(db: SQLiteDatabase, head: string, columns: number, rows: Row[], tail = '') {
+  const PER = Math.floor(900 / columns); // stay well under SQLite's parameter limit
+  const one = `(${Array(columns).fill('?').join(', ')})`;
+  for (let i = 0; i < rows.length; i += PER) {
+    const chunk = rows.slice(i, i + PER);
+    await db.runAsync(`${head} VALUES ${chunk.map(() => one).join(', ')} ${tail}`, chunk.flat());
+  }
+}
+
+/**
+ * Upsert the bundled word list, then rebuild lessons. Learning progress is kept: words
+ * keep their ids (see scripts/build-vocab.mjs), and lesson results are stored by group.
+ */
 async function seedVocab(db: SQLiteDatabase) {
   await db.withExclusiveTransactionAsync(async (txn) => {
-    const stmt = await txn.prepareAsync(`
-      INSERT INTO words (id, kanji, kana, meaning, type, context, rank)
-      VALUES ($id, $kanji, $kana, $meaning, $type, $context, $rank)
-      ON CONFLICT(id) DO UPDATE SET
-        kanji = excluded.kanji, kana = excluded.kana, meaning = excluded.meaning,
-        type = excluded.type, context = excluded.context, rank = excluded.rank
-    `);
-    try {
-      for (let i = 0; i < VOCAB.length; i++) {
-        const [kanji, kana, meaning, type, context] = VOCAB[i];
-        await stmt.executeAsync({
-          $id: i + 1, $kanji: kanji, $kana: kana, $meaning: meaning,
-          $type: type, $context: context, $rank: i + 1,
-        });
-      }
-    } finally {
-      await stmt.finalizeAsync();
-    }
+    await insertMany(
+      txn,
+      'INSERT INTO words (id, kanji, kana, meaning, type, context, rank)',
+      7,
+      VOCAB.map(([kanji, kana, meaning, type, context], i) => [i + 1, kanji, kana, meaning, type, context, i + 1]),
+      `ON CONFLICT(id) DO UPDATE SET
+         kanji = excluded.kanji, kana = excluded.kana, meaning = excluded.meaning,
+         type = excluded.type, context = excluded.context, rank = excluded.rank`,
+    );
     await txn.runAsync('DELETE FROM words WHERE id > ?', VOCAB.length);
 
     await txn.execAsync('DELETE FROM sentence_words; DELETE FROM sentences;');
-    for (let i = 0; i < SENTENCES.length; i++) {
-      const [japanese, kana, english, targets] = SENTENCES[i];
-      await txn.runAsync('INSERT INTO sentences (id, japanese, kana, english) VALUES (?, ?, ?, ?)', i + 1, japanese, kana, english);
-      for (const [wordId, surface] of targets) {
-        await txn.runAsync('INSERT INTO sentence_words (sentence_id, word_id, surface) VALUES (?, ?, ?)', i + 1, wordId, surface);
-      }
-    }
+    await insertMany(
+      txn, 'INSERT INTO sentences (id, japanese, kana, english)', 4,
+      SENTENCES.map(([japanese, kana, english], i) => [i + 1, japanese, kana, english]),
+    );
+    await insertMany(
+      txn, 'INSERT INTO sentence_words (sentence_id, word_id, surface)', 3,
+      SENTENCES.flatMap(([, , , targets], i) => targets.map(([wordId, surface]) => [i + 1, wordId, surface])),
+    );
 
-    const words = await txn.getAllAsync<Word>('SELECT * FROM words');
+    const words: Word[] = VOCAB.map(([kanji, kana, meaning, type, context], i) => ({
+      id: i + 1, kanji, kana, meaning, type, context, rank: i + 1,
+    }));
     await txn.execAsync('DELETE FROM lesson_words; DELETE FROM lessons;');
+    const lessons: Row[] = [];
+    const lessonWords: Row[] = [];
     for (const grouping of ['type', 'context'] as const) {
-      const plans = buildLessons(words, grouping, LESSON_SIZE);
-      for (let p = 0; p < plans.length; p++) {
-        const plan = plans[p];
-        const res = await txn.runAsync(
-          'INSERT INTO lessons (grouping, group_value, part, title, position) VALUES (?, ?, ?, ?, ?)',
-          grouping, plan.groupValue, plan.part, plan.title, p,
-        );
-        for (let i = 0; i < plan.wordIds.length; i++) {
-          await txn.runAsync(
-            'INSERT INTO lesson_words (lesson_id, word_id, position) VALUES (?, ?, ?)',
-            res.lastInsertRowId, plan.wordIds[i], i,
-          );
-        }
-      }
+      buildLessons(words, grouping, LESSON_SIZE).forEach((plan, position) => {
+        const id = lessons.length + 1;
+        lessons.push([id, grouping, plan.groupValue, plan.part, plan.title, position]);
+        plan.wordIds.forEach((wordId, i) => lessonWords.push([id, wordId, i]));
+      });
     }
+    await insertMany(txn, 'INSERT INTO lessons (id, grouping, group_value, part, title, position)', 6, lessons);
+    await insertMany(txn, 'INSERT INTO lesson_words (lesson_id, word_id, position)', 3, lessonWords);
+
     await txn.runAsync(
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       'vocab_version', VOCAB_VERSION,
     );
   });
+  wordCache = null;
 }
 
 // ---------------------------------------------------------------- settings
@@ -252,8 +261,26 @@ export async function recordLessonScore(db: SQLiteDatabase, lessonId: number, sc
 
 // ---------------------------------------------------------------- words & review
 
+// The full list (10,000 words) is used as the pool of wrong answers in quizzes. It only
+// changes when the bundled list does, so load it once.
+let wordCache: Promise<Word[]> | null = null;
+
 export function getAllWords(db: SQLiteDatabase) {
-  return db.getAllAsync<Word>('SELECT * FROM words ORDER BY rank');
+  if (!wordCache) {
+    wordCache = db.getAllAsync<Word>('SELECT * FROM words ORDER BY rank');
+    wordCache.catch(() => (wordCache = null));
+  }
+  return wordCache;
+}
+
+/** Word-of-the-day candidates: the commonest words, so the card is always useful. */
+export const WORD_OF_DAY_POOL = 2000;
+
+export function getWordAtRank(db: SQLiteDatabase, index: number) {
+  return db.getFirstAsync<Word>(
+    'SELECT * FROM words WHERE rank <= ? ORDER BY rank LIMIT 1 OFFSET ?',
+    WORD_OF_DAY_POOL, index % WORD_OF_DAY_POOL,
+  );
 }
 
 export function getDueWords(db: SQLiteDatabase, limit = 20) {

@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
-  getAllWords, getGrouping, getStats, getTodaysLesson, type Lesson, type Word,
+  getGrouping, getStats, getTodaysLesson, getWordAtRank, WORD_OF_DAY_POOL, type Lesson, type Word,
 } from '../../db/database';
 import { dailyIndex } from '../../lib/lessons';
 import { Button, Card, WordWidget } from '../../ui/components';
@@ -12,7 +12,7 @@ import { colors, space } from '../../ui/theme';
 export default function Today() {
   const db = useSQLiteContext();
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [words, setWords] = useState<Word[]>([]);
+  const [wotd, setWotd] = useState<Word | null>(null);
   const [offset, setOffset] = useState(0);
   const [stats, setStats] = useState({ total: 0, seen: 0, learned: 0, due: 0 });
 
@@ -21,10 +21,9 @@ export default function Today() {
       let alive = true;
       (async () => {
         const grouping = await getGrouping(db);
-        const [l, w, s] = await Promise.all([getTodaysLesson(db, grouping), getAllWords(db), getStats(db)]);
+        const [l, s] = await Promise.all([getTodaysLesson(db, grouping), getStats(db)]);
         if (!alive) return;
         setLesson(l);
-        setWords(w);
         setStats(s);
       })();
       return () => {
@@ -33,7 +32,13 @@ export default function Today() {
     }, [db]),
   );
 
-  const wotd = words.length ? words[(dailyIndex(words.length, new Date()) + offset) % words.length] : null;
+  useEffect(() => {
+    let alive = true;
+    getWordAtRank(db, dailyIndex(WORD_OF_DAY_POOL, new Date()) + offset).then((w) => alive && setWotd(w));
+    return () => {
+      alive = false;
+    };
+  }, [db, offset]);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
@@ -70,6 +75,10 @@ export default function Today() {
           style={{ marginTop: space(4) }}
         />
       </Card>
+      <Text style={styles.credit}>
+        Words from JMdict by the Electronic Dictionary Research and Development Group (EDRDG), CC BY-SA 4.0.
+        Word frequency from OpenSubtitles via Hermit Dave's FrequencyWords, CC BY-SA 4.0.
+      </Text>
     </ScrollView>
   );
 }
@@ -93,4 +102,5 @@ const styles = StyleSheet.create({
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: space(3), alignItems: 'center', borderWidth: 1, borderColor: colors.line },
   statN: { fontSize: 22, fontWeight: '700', color: colors.ink },
   statL: { fontSize: 12, color: colors.muted },
+  credit: { fontSize: 11, color: colors.muted, textAlign: 'center', marginTop: space(2), lineHeight: 16 },
 });
