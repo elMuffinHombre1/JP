@@ -34,6 +34,13 @@ export default function Review() {
         <Button label="Reading quiz" kind="secondary" disabled={!count} onPress={() => start('reading')} />
         <Button label="Writing practice" kind="secondary" disabled={!count} onPress={() => start('writing')} />
       </Card>
+      <Card style={{ gap: space(3) }}>
+        <Text style={styles.title}>⚡ Speed reading</Text>
+        <Text style={styles.sub}>
+          A timed reading drill with 20 random words you've already studied, due or not. Beat your best average time.
+        </Text>
+        <Button label="Start speed reading" onPress={() => router.push('/speed')} />
+      </Card>
       {due.length ? (
         <Card>
           {due.map((w) => <WordRow key={w.id} word={w} />)}

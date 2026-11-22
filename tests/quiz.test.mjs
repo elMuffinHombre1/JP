@@ -31,3 +31,23 @@ test('explanations and askability', () => {
   assert.equal(canAsk(pool[5], 'writing'), false);
   assert.equal(canAsk(pool[5], 'meaning'), true);
 });
+
+import { summarizeSpeed, isBestRun } from '../src/lib/quiz.ts';
+
+test('speed summary averages correct answers only', () => {
+  const s = summarizeSpeed([
+    { wordId: 1, correct: true, ms: 1000, timedOut: false },
+    { wordId: 2, correct: true, ms: 2000, timedOut: false },
+    { wordId: 3, correct: false, ms: 5000, timedOut: true },
+    { wordId: 4, correct: false, ms: 800, timedOut: false },
+  ]);
+  assert.deepEqual(s, { total: 4, correct: 2, pct: 50, avgMs: 1500, fastestMs: 1000, timeouts: 1 });
+  assert.equal(summarizeSpeed([]).avgMs, null);
+});
+
+test('personal best needs 80% accuracy and a faster average', () => {
+  assert.equal(isBestRun(1500, 90, null), true);
+  assert.equal(isBestRun(1500, 70, null), false);
+  assert.equal(isBestRun(1500, 90, 1400), false);
+  assert.equal(isBestRun(1300, 90, 1400), true);
+});

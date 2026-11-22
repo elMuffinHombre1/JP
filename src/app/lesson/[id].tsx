@@ -42,6 +42,12 @@ export default function LessonScreen() {
         <Button label="Meaning quiz" onPress={() => start('meaning')} />
         <Button label="Reading quiz" kind="secondary" disabled={!hasKanji} onPress={() => start('reading')} />
         <Button label="Writing practice" kind="secondary" disabled={!hasKanji} onPress={() => start('writing')} />
+        <Button
+          label="⚡ Speed reading (timed)"
+          kind="secondary"
+          disabled={!hasKanji}
+          onPress={() => router.push({ pathname: '/speed', params: { lessonId: id } })}
+        />
         {lesson?.best_score != null ? (
           <Text style={styles.sub}>Best score: {lesson.best_score}%{lesson.completed_at ? ' · completed ✅' : ''}</Text>
         ) : null}

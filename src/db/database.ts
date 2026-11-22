@@ -235,6 +235,15 @@ export function getDueWords(db: SQLiteDatabase, limit = 20) {
   );
 }
 
+/** Random words you've already studied (for speed practice outside a lesson). */
+export function getSeenWords(db: SQLiteDatabase, limit = 20) {
+  return db.getAllAsync<WordProgress>(
+    `SELECT w.*, p.box, p.due FROM progress p JOIN words w ON w.id = p.word_id
+     ORDER BY RANDOM() LIMIT ?`,
+    limit,
+  );
+}
+
 export async function recordAnswer(db: SQLiteDatabase, wordId: number, correct: boolean) {
   const now = Date.now();
   const cur = await db.getFirstAsync<{ box: number }>('SELECT box FROM progress WHERE word_id = ?', wordId);

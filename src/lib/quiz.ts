@@ -79,3 +79,31 @@ export function readingExplanation(word: QWord): string | null {
   else if (word.type === 'adj-i') note += ' Ending in 〜い → this is an い-adjective.';
   return note;
 }
+
+// ---------------------------------------------------------------- speed reading
+
+export interface SpeedResult {
+  wordId: number;
+  correct: boolean;
+  ms: number; // time taken; equals the limit on a timeout
+  timedOut: boolean;
+}
+
+export const SPEED_LIMITS = [3, 5, 8] as const;
+
+export function summarizeSpeed(results: SpeedResult[]) {
+  const right = results.filter((r) => r.correct);
+  const avgMs = right.length ? Math.round(right.reduce((s, r) => s + r.ms, 0) / right.length) : null;
+  return {
+    total: results.length,
+    correct: right.length,
+    pct: results.length ? Math.round((right.length / results.length) * 100) : 0,
+    avgMs, // average time on correct answers only
+    fastestMs: right.length ? Math.min(...right.map((r) => r.ms)) : null,
+    timeouts: results.filter((r) => r.timedOut).length,
+  };
+}
+
+/** A run counts toward your personal best only if it was accurate enough. */
+export const isBestRun = (avgMs: number | null, pct: number, previousBest: number | null) =>
+  avgMs !== null && pct >= 80 && (previousBest === null || avgMs < previousBest);
